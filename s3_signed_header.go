@@ -7,33 +7,26 @@ import (
 	"strings"
 )
 
-func canonicalAndSignedHeaders(req *http.Request, signedHeaderArr []string, original http.Header) (canonical, signed string) {
-	lowercaseKeys := map[string]string{} // map[lowercase]original
-	for _, key := range signedHeaderArr {
-		lowercaseKeys[strings.ToLower(key)] = key
-	}
-	var sortedKeys []string
-	for key := range lowercaseKeys {
-		sortedKeys = append(sortedKeys, key)
-	}
+func canonicalAndSignedHeaders(req *http.Request, v4data *v4ParsedData) (canonical, signed string) {
+	sortedKeys := make([]string, 0, len(v4data.SignedHeaders))
+	sortedKeys = append(sortedKeys, v4data.SignedHeaders...)
 	sort.Strings(sortedKeys)
 
 	canonicalBuilder := new(strings.Builder)
-	for _, lowerKey := range sortedKeys {
-		titleKey := lowercaseKeys[lowerKey]
+	for _, key := range sortedKeys {
 		var values []string
-		iterVals := original.Values(titleKey)
-		if strings.EqualFold(titleKey, "Host") {
+		iterVals := req.Header.Values(key)
+		if strings.EqualFold(key, "Host") {
 			iterVals = []string{req.Host} //FIXME: 如果host使用的端口是443/80,那么将端口移除
 			//iterVals = []string{strings.Split(req.Host, ":")[0]} // AWS does not include port in signing request.
 		}
-		if strings.EqualFold(titleKey, "Content-Length") {
+		if strings.EqualFold(key, "Content-Length") {
 			iterVals = []string{strconv.FormatInt(req.ContentLength, 10)}
 		}
 		for _, value := range iterVals {
 			values = append(values, trimHeaderValue(value))
 		}
-		canonicalBuilder.WriteString(lowerKey)
+		canonicalBuilder.WriteString(key)
 		canonicalBuilder.WriteString(":")
 		canonicalBuilder.WriteString(strings.Join(values, ","))
 		canonicalBuilder.WriteString("\n")

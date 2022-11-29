@@ -15,7 +15,7 @@ const (
 	s3Authorization      = "Authorization"
 )
 
-type V4Signature struct {
+type v4ParsedData struct {
 	AKey          string
 	Date          string
 	Region        string
@@ -28,7 +28,7 @@ type V4Signature struct {
 	Contentsha256 string
 }
 
-func ParseV4Signature(r *http.Request) (*V4Signature, bool, error) {
+func ParseV4Signature(r *http.Request) (*v4ParsedData, bool, error) {
 	auz := r.Header.Get("Authorization")
 	if len(auz) == 0 {
 		return nil, false, nil
@@ -37,7 +37,7 @@ func ParseV4Signature(r *http.Request) (*V4Signature, bool, error) {
 	if len(items) != 3 {
 		return nil, false, errs.New(errs.ErrParam, "invalid authorization part, auz:%s", auz)
 	}
-	v4Data := &V4Signature{}
+	v4Data := &v4ParsedData{}
 	credPart := strings.TrimSpace(items[0])
 	if err := v4Data.parseCredPart(credPart); err != nil {
 		return nil, false, errs.Wrap(errs.ErrParam, "decode cred part fail", err)
@@ -56,14 +56,14 @@ func ParseV4Signature(r *http.Request) (*V4Signature, bool, error) {
 	return v4Data, true, nil
 }
 
-func (d *V4Signature) parseExtraPart(r *http.Request) error {
+func (d *v4ParsedData) parseExtraPart(r *http.Request) error {
 	d.Contentmd5 = r.Header.Get("Content-Md5")
 	d.Contentsha256 = r.Header.Get("X-Amz-Content-Sha256")
 	d.Date = r.Header.Get("X-Amz-Date")
 	return nil
 }
 
-func (d *V4Signature) parseCredPart(part string) error {
+func (d *v4ParsedData) parseCredPart(part string) error {
 	items := strings.Split(part, " ")
 	if len(items) != 2 {
 		return errs.New(errs.ErrParam, "invalid cred part, part:%s", part)
@@ -87,7 +87,7 @@ func (d *V4Signature) parseCredPart(part string) error {
 	return nil
 }
 
-func (d *V4Signature) parseSignedHeaderPart(part string) error {
+func (d *v4ParsedData) parseSignedHeaderPart(part string) error {
 	part = strings.TrimSpace(part)
 	if !strings.HasPrefix(part, v4SignedHeaderPrefix) {
 		return errs.New(errs.ErrParam, "invalid sign header, should containsm signed headers prefix, part:%s", part)
@@ -100,7 +100,7 @@ func (d *V4Signature) parseSignedHeaderPart(part string) error {
 	return nil
 }
 
-func (d *V4Signature) parseSignaturePart(part string) error {
+func (d *v4ParsedData) parseSignaturePart(part string) error {
 	if !strings.HasPrefix(part, v4SignaturePrefix) {
 		return errs.New(errs.ErrParam, "invalid signature prefix, signature:%s", part)
 	}
