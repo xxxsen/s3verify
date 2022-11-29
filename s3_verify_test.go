@@ -18,7 +18,7 @@ func TestVerifyPut(t *testing.T) {
 		awsauth.Key("abcd"),
 	)
 	assert.NoError(t, err)
-	ok, err := Verify(req, map[string]string{"abc": "123456"})
+	_, ok, err := Verify(req, map[string]string{"abc": "123456"})
 	assert.NoError(t, err)
 	assert.True(t, ok)
 }
@@ -32,7 +32,7 @@ func TestVerifyGet(t *testing.T) {
 		awsauth.Key("abcd"),
 	)
 	assert.NoError(t, err)
-	ok, err := Verify(req, map[string]string{"abc": "123456"})
+	_, ok, err := Verify(req, map[string]string{"abc": "123456"})
 	assert.NoError(t, err)
 	assert.True(t, ok)
 }

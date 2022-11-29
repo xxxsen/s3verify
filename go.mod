@@ -1,4 +1,4 @@
-module s3verify
+module github.com/xxxsen/s3verify
 
 go 1.15
 
