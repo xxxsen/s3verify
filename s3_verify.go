@@ -37,7 +37,7 @@ func Verify(req *http.Request, user map[string]string) (string, bool, error) {
 		AccessKeyID:     sign.AKey,
 		SecretAccessKey: sk,
 	}
-	signature := calculateAWSv4Signature(sign.Region, req, cred)
+	signature := calculateAWSv4Signature(sign.Region, req, cred, sign)
 	idx := strings.Index(signature, v4SignaturePrefix)
 	if idx < 0 {
 		return "", false, errs.New(errs.ErrParam, "create signature fail, no prefix, sn:%s", signature)

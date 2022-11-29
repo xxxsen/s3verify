@@ -3,17 +3,15 @@ package s3verify
 import (
 	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 )
 
-func canonicalAndSignedHeaders(original http.Header) (canonical, signed string) {
+func canonicalAndSignedHeaders(req *http.Request, signedHeaderArr []string, original http.Header) (canonical, signed string) {
 	lowercaseKeys := map[string]string{} // map[lowercase]original
-	for key := range original {
-		if headerEligibleForSigning(key) {
-			lowercaseKeys[strings.ToLower(key)] = key
-		}
+	for _, key := range signedHeaderArr {
+		lowercaseKeys[strings.ToLower(key)] = key
 	}
-
 	var sortedKeys []string
 	for key := range lowercaseKeys {
 		sortedKeys = append(sortedKeys, key)
@@ -24,10 +22,15 @@ func canonicalAndSignedHeaders(original http.Header) (canonical, signed string) 
 	for _, lowerKey := range sortedKeys {
 		titleKey := lowercaseKeys[lowerKey]
 		var values []string
-		for _, value := range original[titleKey] {
-			if titleKey == "Host" && strings.Contains(value, ":") {
-				value = strings.Split(value, ":")[0] // AWS does not include port in signing request.
-			}
+		iterVals := original.Values(titleKey)
+		if strings.EqualFold(titleKey, "Host") {
+			iterVals = []string{req.Host} //FIXME: 如果host使用的端口是443/80,那么将端口移除
+			//iterVals = []string{strings.Split(req.Host, ":")[0]} // AWS does not include port in signing request.
+		}
+		if strings.EqualFold(titleKey, "Content-Length") {
+			iterVals = []string{strconv.FormatInt(req.ContentLength, 10)}
+		}
+		for _, value := range iterVals {
 			values = append(values, trimHeaderValue(value))
 		}
 		canonicalBuilder.WriteString(lowerKey)
@@ -45,17 +48,3 @@ func trimHeaderValue(value string) string {
 	}
 	return value
 }
-
-func headerEligibleForSigning(key string) bool {
-	if runningAWSTestSuite {
-		return true
-	}
-	switch key {
-	case "Content-Type", "Content-Md5", "Host":
-		return true
-	default:
-		return strings.HasPrefix(key, "X-Amz")
-	}
-}
-
-var runningAWSTestSuite bool

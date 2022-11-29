@@ -14,7 +14,7 @@ func TestVerifyPut(t *testing.T) {
 		awsauth.Credentials("abc", "123456"),
 		awsauth.ContentBytes([]byte("helloworld")),
 		awsauth.Bucket("hackmd"),
-		awsauth.Endpoint("http://127.0.0.1:555"),
+		awsauth.Endpoint("http://test.com"),
 		awsauth.Key("abcd"),
 	)
 	assert.NoError(t, err)

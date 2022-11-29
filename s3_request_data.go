@@ -17,9 +17,9 @@ type v4RequestData struct {
 	signedHeaders    string
 }
 
-func initializeRequestData(request *http.Request, service, region, bodyDigest string) *v4RequestData {
+func initializeRequestData(request *http.Request, service, region, bodyDigest string, signedHeaderArr []string) *v4RequestData {
 	requestTimestamp := request.Header.Get("X-Amz-Date")
-	canonicalHeaders, signedHeaders := canonicalAndSignedHeaders(request.Header)
+	canonicalHeaders, signedHeaders := canonicalAndSignedHeaders(request, signedHeaderArr, request.Header)
 	return &v4RequestData{
 		service:          service,
 		region:           region,

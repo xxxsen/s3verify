@@ -6,8 +6,8 @@ import (
 	"net/http"
 )
 
-func calculateAWSv4Signature(region string, request *http.Request, credentials awsCredentials) string {
-	signer := newV4Signer("s3", region, request.Header.Get("X-Amz-Content-Sha256"), request, credentials)
+func calculateAWSv4Signature(region string, request *http.Request, credentials awsCredentials, v4data *V4Signature) string {
+	signer := newV4Signer("s3", region, request.Header.Get("X-Amz-Content-Sha256"), request, credentials, v4data)
 	signature := signer.calculateSignature()
 	return signature.task4_AuthorizationHeader
 }
@@ -17,10 +17,13 @@ type v4Signer struct {
 	data *v4RequestData
 }
 
-func newV4Signer(service, region, bodyDigest string, request *http.Request, credentials awsCredentials) *v4Signer {
+func newV4Signer(service, region, bodyDigest string,
+	request *http.Request,
+	credentials awsCredentials,
+	v4data *V4Signature) *v4Signer {
 	return &v4Signer{
 		keys: credentials,
-		data: initializeRequestData(request, service, region, bodyDigest),
+		data: initializeRequestData(request, service, region, bodyDigest, v4data.SignedHeaders),
 	}
 }
 
