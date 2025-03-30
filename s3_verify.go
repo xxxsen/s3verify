@@ -1,11 +1,13 @@
 package s3verify
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 	"strings"
-
-	"github.com/xxxsen/common/errs"
 )
+
+type UserQueryFunc func(ctx context.Context, ak string) (string, bool, error)
 
 func IsRequestSignatureV4(r *http.Request) bool {
 	auz := r.Header.Get(s3Authorization)
@@ -18,9 +20,9 @@ func IsRequestSignatureV4(r *http.Request) bool {
 	return true
 }
 
-func Verify(req *http.Request, user map[string]string) (string, bool, error) {
+func Verify(req *http.Request, fn UserQueryFunc) (string, bool, error) {
 	if !IsRequestSignatureV4(req) {
-		return "", false, errs.New(errs.ErrParam, "not v4 request")
+		return "", false, fmt.Errorf("not v4 request")
 	}
 	sign, ok, err := ParseV4Signature(req)
 	if err != nil {
@@ -29,7 +31,10 @@ func Verify(req *http.Request, user map[string]string) (string, bool, error) {
 	if !ok {
 		return "", false, nil
 	}
-	sk, ok := user[sign.AKey]
+	sk, ok, err := fn(req.Context(), sign.AKey)
+	if err != nil {
+		return "", false, err
+	}
 	if !ok {
 		return "", false, nil
 	}
@@ -40,7 +45,7 @@ func Verify(req *http.Request, user map[string]string) (string, bool, error) {
 	signature := calculateAWSv4Signature(sign.Region, req, cred, sign)
 	idx := strings.Index(signature, v4SignaturePrefix)
 	if idx < 0 {
-		return "", false, errs.New(errs.ErrParam, "create signature fail, no prefix, sn:%s", signature)
+		return "", false, fmt.Errorf("create signature fail, no prefix, sn:%s", signature)
 	}
 	signature = signature[idx+len(v4SignaturePrefix):]
 	if signature != sign.Signature {

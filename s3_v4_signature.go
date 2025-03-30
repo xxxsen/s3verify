@@ -1,10 +1,9 @@
 package s3verify
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
-
-	"github.com/xxxsen/common/errs"
 )
 
 const (
@@ -35,23 +34,23 @@ func ParseV4Signature(r *http.Request) (*v4ParsedData, bool, error) {
 	}
 	items := strings.Split(auz, ",")
 	if len(items) != 3 {
-		return nil, false, errs.New(errs.ErrParam, "invalid authorization part, auz:%s", auz)
+		return nil, false, fmt.Errorf("invalid authorization part, auz:%s", auz)
 	}
 	v4Data := &v4ParsedData{}
 	credPart := strings.TrimSpace(items[0])
 	if err := v4Data.parseCredPart(credPart); err != nil {
-		return nil, false, errs.Wrap(errs.ErrParam, "decode cred part fail", err)
+		return nil, false, fmt.Errorf("decode cred part fail, err:%w", err)
 	}
 	signedHeaderPart := strings.TrimSpace(items[1])
 	if err := v4Data.parseSignedHeaderPart(signedHeaderPart); err != nil {
-		return nil, false, errs.Wrap(errs.ErrParam, "decode signature header part fail", err)
+		return nil, false, fmt.Errorf("decode signature header part fail, err:%w", err)
 	}
 	signaturePart := strings.TrimSpace(items[2])
 	if err := v4Data.parseSignaturePart(signaturePart); err != nil {
-		return nil, false, errs.Wrap(errs.ErrParam, "decode signature part fail", err)
+		return nil, false, fmt.Errorf("decode signature part fail, err:%w", err)
 	}
 	if err := v4Data.parseExtraPart(r); err != nil {
-		return nil, false, errs.Wrap(errs.ErrParam, "decode extra part fail", err)
+		return nil, false, fmt.Errorf("decode extra part fail, err:%w", err)
 	}
 	return v4Data, true, nil
 }
@@ -66,18 +65,18 @@ func (d *v4ParsedData) parseExtraPart(r *http.Request) error {
 func (d *v4ParsedData) parseCredPart(part string) error {
 	items := strings.Split(part, " ")
 	if len(items) != 2 {
-		return errs.New(errs.ErrParam, "invalid cred part, part:%s", part)
+		return fmt.Errorf("invalid cred part, part:%s", part)
 	}
 	algo := strings.TrimSpace(items[0])
 	d.Algorithm = algo
 	cred := strings.TrimSpace(items[1])
 	if !strings.HasPrefix(cred, v4CredPrefix) {
-		return errs.New(errs.ErrParam, "invalid cred prefix, cred:%s", cred)
+		return fmt.Errorf("invalid cred prefix, cred:%s", cred)
 	}
 	cred = cred[len(v4CredPrefix):]
 	parts := strings.Split(cred, "/")
 	if len(parts) != 5 {
-		return errs.New(errs.ErrParam, "invalid cred part, need 5, part:%s", cred)
+		return fmt.Errorf("invalid cred part, need 5, part:%s", cred)
 	}
 	d.AKey = parts[0]
 	d.Date = parts[1]
@@ -90,7 +89,7 @@ func (d *v4ParsedData) parseCredPart(part string) error {
 func (d *v4ParsedData) parseSignedHeaderPart(part string) error {
 	part = strings.TrimSpace(part)
 	if !strings.HasPrefix(part, v4SignedHeaderPrefix) {
-		return errs.New(errs.ErrParam, "invalid sign header, should containsm signed headers prefix, part:%s", part)
+		return fmt.Errorf("invalid sign header, should containsm signed headers prefix, part:%s", part)
 	}
 	part = part[len(v4SignedHeaderPrefix):]
 	headers := strings.Split(part, ";")
@@ -102,7 +101,7 @@ func (d *v4ParsedData) parseSignedHeaderPart(part string) error {
 
 func (d *v4ParsedData) parseSignaturePart(part string) error {
 	if !strings.HasPrefix(part, v4SignaturePrefix) {
-		return errs.New(errs.ErrParam, "invalid signature prefix, signature:%s", part)
+		return fmt.Errorf("invalid signature prefix, signature:%s", part)
 	}
 	part = part[len(v4SignaturePrefix):]
 	d.Signature = strings.TrimSpace(part)
