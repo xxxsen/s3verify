@@ -20,7 +20,7 @@ func IsRequestSignatureV4(r *http.Request) bool {
 	return true
 }
 
-func Verify(req *http.Request, fn UserQueryFunc) (string, bool, error) {
+func Verify(ctx context.Context, req *http.Request, fn UserQueryFunc) (string, bool, error) {
 	if !IsRequestSignatureV4(req) {
 		return "", false, fmt.Errorf("not v4 request")
 	}
@@ -31,7 +31,7 @@ func Verify(req *http.Request, fn UserQueryFunc) (string, bool, error) {
 	if !ok {
 		return "", false, nil
 	}
-	sk, ok, err := fn(req.Context(), sign.AKey)
+	sk, ok, err := fn(ctx, sign.AKey)
 	if err != nil {
 		return "", false, err
 	}
